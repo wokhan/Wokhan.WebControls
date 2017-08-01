@@ -1,0 +1,297 @@
+﻿.ExtendedGridView {
+    font-family: "Segoe UI",verdana,sans-serif;
+    position: relative;
+    font-size: 9pt;
+}
+
+.ExtendedGridViewTitle {
+    font-family: "Segoe UI Light", "Segoe UI",verdana,sans-serif;
+    color: #02ADCE;
+    font-size: 24px;
+    font-weight: 300;
+    margin: 10px 0px 0px 0px;
+    text-decoration: none;
+    display: table-cell;
+    width: 100%;
+}
+
+.ExtendedGridView > table > tbody {
+    font-family: "Segoe UI Light", "Segoe UI",verdana,sans-serif;
+    background-color: rgb(249, 249, 249);
+}
+
+.ExtendedGridViewGrid {
+    table-layout: fixed;
+    min-width: 100%;
+}
+
+@keyframes ExtendedGridViewLoading {
+    0% {
+        background-position: 0px 0px;
+    }
+
+    100% {
+        background-position: 1000px 0px;
+    }
+}
+
+.ExtendedGridViewLoading {
+    height: 2px;
+    margin-top: -2px;
+    background-image: linear-gradient(0deg, rgba(255,0,0,0), #2187e7, rgba(255,0,0,0));
+    background-image: -moz-linear-gradient(0deg, rgba(255,0,0,0), #2187e7, rgba(255,0,0,0));
+    background-image: -webkit-linear-gradient(0deg, rgba(255,0,0,0), #2187e7, rgba(255,0,0,0));
+    overflow: hidden;
+    animation: ExtendedGridViewLoading 1s infinite linear;
+    -moz-animation: ExtendedGridViewLoading 1s infinite ease-in-out;
+    -webkit-animation: ExtendedGridViewLoading 1s infinite ease-in-out;
+}
+
+
+.ExtendedGridViewFilterTarget {
+    display: inline-block;
+}
+
+.ExtendedGridViewFilterValue {
+    display: inline-block;
+    white-space: nowrap;
+}
+
+    .ExtendedGridViewFilterValue label {
+        display: inline-block;
+        min-width: 90px;
+    }
+
+        .ExtendedGridViewFilterValue label:empty {
+            min-width: 0px;
+        }
+
+
+.ExtendedGridViewGrid th {
+    font-weight: bold;
+    text-align: left;
+    word-wrap: break-word;
+}
+
+.ExtendedGridViewHeader {
+    background-color: #02ADCE;
+}
+
+    .ExtendedGridViewHeader th {
+        height: 20px;
+        text-transform: capitalize;
+        padding-right: 10px !important;
+        font-size: 12px;
+        text-align: left;
+        padding-left: 10px; /*text-align: center;*/
+    }
+
+.ExtendedGridViewHeaderSortable th[onclick] {
+    padding-right: 16px !important;
+    cursor: pointer;
+    background: transparent url(<%= WebResource("Wokhan.WebControls.Images.sortnone.png") %>) right center no-repeat;
+}
+
+    .ExtendedGridViewHeaderSortable th[onclick]:hover {
+        background-color: rgb(112,203,16);
+    }
+
+.ExtendedGridViewHeader th, .ExtendedGridViewHeader th a {
+    color: White !important;
+    text-decoration: none !important;
+}
+
+.ExtendedGridViewHeaderGroupsRow {
+    background-color: #02ADCE;
+    color: white;
+}
+
+    .ExtendedGridViewHeaderGroupsRow th {
+        font-weight: bold;
+        text-align: center;
+        word-wrap: break-word;
+    }
+
+.ExtendedGridView tfoot {
+    background-color: rgb(183, 224, 240);
+    line-height: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+
+    .ExtendedGridView tfoot table {
+        float: left;
+    }
+
+        .ExtendedGridView tfoot table a {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            line-height: 18px;
+            background-color: #E7E7E7;
+            color: black;
+            font-size: x-small;
+            margin-right: 4px;
+            text-decoration: none !important;
+            transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out;
+        }
+
+            .ExtendedGridView tfoot table a:hover {
+                background-color: #02ADCE;
+                color: white;
+            }
+
+        .ExtendedGridView tfoot table span {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            line-height: 18px;
+            background-color: #02ADCE;
+            color: white;
+            font-size: x-small;
+            margin-right: 4px;
+        }
+
+.ExtendedGridViewRow {
+    background-color: rgb(249,249,249);
+}
+
+.ExtendedGridViewRowAlternate {
+    background-color: #E7E7E7;
+}
+
+.ExtendedGridViewEmptyDataRow {
+    background-color: rgb(249,249,249);
+    font-style: italic;
+}
+
+.ExtendedGridViewGrid td {
+    word-wrap: break-word; /*text-align: center;*/
+}
+
+.ExtendedGridViewHeader th[onclick].ExtendedGridViewHeaderCellSortedAscending {
+    background: rgb(112,203,16) url(<%= WebResource("Wokhan.WebControls.Images.sortedASC.png") %>) right center no-repeat;
+}
+
+.ExtendedGridViewHeader th[onclick].ExtendedGridViewHeaderCellSortedDescending {
+    background: rgb(112,203,16) url(<%= WebResource("Wokhan.WebControls.Images.sortedDESC.png") %>) right center no-repeat;
+}
+
+.ExtendedGridViewSortCounter {
+    float: right;
+    font-size: x-small;
+    color: White;
+    line-height: 16px;
+}
+
+.ExtendedGridViewItemsCount {
+    margin-right: 10px;
+    float: right;
+}
+
+.ExtendedGridViewLastUpdate {
+    margin-right: 10px;
+    float: right;
+}
+/*
+.ExtendedGridViewGroupCell
+{
+    opacity: 0.5;
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+}*/
+
+.ExtendedGridViewGroupCellHeader {
+    text-align: left !important;
+    cursor: pointer;
+    margin: 0px;
+    padding: 0px 0px 5px;
+}
+
+    .ExtendedGridViewGroupCellHeader div {
+        background-color: white;
+        padding: 3px;
+    }
+
+        .ExtendedGridViewGroupCellHeader div:hover {
+            background-color: rgb(112,203,16);
+            color: White;
+        }
+
+.ExtendedGridViewHeaderCellGroup {
+    width: 5px;
+}
+
+.ExtendedGridViewPager td {
+    text-align: center;
+}
+
+/*
+.ExtendedGridViewRowAlternate .ExtendedGridViewGroupCell
+{
+    opacity: 0.7;
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)";
+}*/
+
+.ExtendedGridViewFilterOwner {
+    padding-left: 15px;
+    padding-bottom: 5px;
+    display: table-cell;
+    white-space: nowrap;
+    font-size: 0.9em;
+}
+
+.ExtendedGridViewFilterOn {
+    line-height: 20px;
+    font-size: 1em;
+}
+
+    .ExtendedGridViewFilterOn option {
+        background: white;
+    }
+
+        .ExtendedGridViewFilterOn option:disabled, .ExtendedGridViewFilterOn optgroup {
+            background: lightgray;
+            color: black;
+        }
+
+.ExtendedGridViewFilter {
+    margin-left: 5px;
+    border: 1px solid #02ADCE;
+    margin-top: 5px;
+    font-size: 1.0em;
+}
+
+.ExtendedGridViewTimer {
+    padding-left: 15px;
+    display: table-cell;
+    white-space: nowrap;
+    font-size: 0.9em;
+}
+
+.ExtendedGridViewHighlightedText {
+    background-color: yellow;
+}
+
+
+.ExtendedGridViewButtonClear, .ExtendedGridViewButtonSearch {
+    border: medium none;
+    background: lightgray none repeat scroll 0% 0%;
+    z-index: 100;
+    display: inline-block;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out 0s, color 0.2s ease-in-out 0s;
+    vertical-align: top;
+    padding: 5px 8px;
+    text-decoration: none;
+    margin: 3px 0px;
+    color: black;
+    min-width: 75px;
+    font-size: 1em;
+}
+
+    .ExtendedGridViewButtonClear:hover, .ExtendedGridViewButtonSearch:hover {
+        background: gray none repeat scroll 0% 0%;
+        color: white;
+    }

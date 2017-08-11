@@ -34,8 +34,10 @@ using System.Web.UI;
 // by using the '*' as shown below:
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: WebResource("Wokhan.WebControls.Scripts.ExtendedGridView.js", "text/javascript")]
+[assembly: WebResource("Wokhan.WebControls.Scripts.ExtendedGridView.js", "text/javascript", PerformSubstitution = true)]
 [assembly: WebResource("Wokhan.WebControls.Styles.ExtendedGridView.css", "text/css", PerformSubstitution = true)]
 [assembly: WebResource("Wokhan.WebControls.Images.sortnone.png", "image/png")]
 [assembly: WebResource("Wokhan.WebControls.Images.sortedDESC.png", "image/png")]
 [assembly: WebResource("Wokhan.WebControls.Images.sortedASC.png", "image/png")]
+[assembly: WebResource("Wokhan.WebControls.Images.toggle_plus.gif", "image/gif")]
+[assembly: WebResource("Wokhan.WebControls.Images.toggle_minus.gif", "image/gif")]

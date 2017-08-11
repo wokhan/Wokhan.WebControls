@@ -14,10 +14,17 @@
         </asp:Panel>
         <asp:Repeater ID="rptDetailedSearch" runat="server">
             <ItemTemplate>
-                <div class="ExtendedGridViewFilterValue">
-                    <asp:Label ID="lblFilter" CssClass="ExtendedGridViewFilterTitle" runat="server" />
-                    <asp:TextBox ID="txtFilter" CssClass="ExtendedGridViewFilter" runat="server" />
-                    <asp:DropDownList ID="ddlFilter" CssClass="ExtendedGridViewFilter" runat="server" />
+                <div class="ExtendedGridViewFilterGroup">
+                    <asp:Label ID="lblGroupTitle" CssClass="ExtendedGridViewFilterGroupTitle" runat="server" />
+                    <asp:Repeater ID="rptDetailedSearchItem" runat="server">
+                        <ItemTemplate>
+                            <div class="ExtendedGridViewFilterValue">
+                                <asp:Label ID="lblFilter" CssClass="ExtendedGridViewFilterTitle" runat="server" />
+                                <asp:TextBox ID="txtFilter" CssClass="ExtendedGridViewFilter" runat="server" />
+                                <asp:DropDownList ID="ddlFilter" CssClass="ExtendedGridViewFilter" runat="server" />
+                            </div>
+                        </ItemTemplate>
+                    </asp:Repeater>
                 </div>
             </ItemTemplate>
         </asp:Repeater>

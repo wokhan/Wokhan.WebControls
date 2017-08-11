@@ -38,7 +38,6 @@ namespace Wokhan.WebControls
         private HtmlContainerControl divTimer;
         private bool footerDone = false;
         private GridView gridEv;
-        private List<int> groupableColsIndexes;
         private String groupId;
         private string groupVal = null;
         private HiddenField hidCtrlDown;
@@ -62,7 +61,7 @@ namespace Wokhan.WebControls
         }*/
 
         #region Events (handlers / definitions)
-        
+
         public event EventHandler FilterTextChanged;
 
         public event GridViewPageEventHandler PageIndexChanging;
@@ -178,21 +177,41 @@ namespace Wokhan.WebControls
         {
             if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
             {
-                var data = (KeyValuePair<string, string>)e.Item.DataItem;
+                var data = (IGrouping<string, Tuple<string, string, string>>)e.Item.DataItem;
+                var lblGroupTitle = (Label)e.Item.FindControl("lblGroupTitle");
+                var rptDetailedSearchItem = (Repeater)e.Item.FindControl("rptDetailedSearchItem");
+
+                if (data.Key != null)
+                {
+                    lblGroupTitle.Text = data.Key;
+                }
+
+                rptDetailedSearchItem.ItemDataBound += rptDetailedSearchItem_ItemDataBound;
+                rptDetailedSearchItem.DataSource = data;
+                rptDetailedSearchItem.DataBind();
+            }
+        }
+
+
+        private void rptDetailedSearchItem_ItemDataBound(object sender, RepeaterItemEventArgs e)
+        {
+            if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
+            {
+                var data = (Tuple<string, string, string>)e.Item.DataItem; ;
                 Label lblFilter = (Label)e.Item.FindControl("lblFilter");
                 TextBox txtFilter = (TextBox)e.Item.FindControl("txtFilter");
                 DropDownList ddlFilter = (DropDownList)e.Item.FindControl("ddlFilter");
                 ITextControl tdfilter;
 
                 Func<Dictionary<string, string>> sourceProvider;
-                if (FilterSourcesProvider != null && FilterSourcesProvider.TryGetValue(data.Key, out sourceProvider))
+                if (FilterSourcesProvider != null && FilterSourcesProvider.TryGetValue(data.Item1, out sourceProvider))
                 {
                     tdfilter = ddlFilter;
 
                     ddlFilter.DataSource = sourceProvider();
                     ddlFilter.DataValueField = "Key";
                     ddlFilter.DataTextField = "Value";
-                    ddlFilter.ID = "txtFilter_" + data.Key;
+                    ddlFilter.ID = "txtFilter_" + data.Item1;
                     ddlFilter.DataBind();
 
                     txtFilter.Visible = false;
@@ -201,20 +220,20 @@ namespace Wokhan.WebControls
                 {
                     tdfilter = txtFilter;
 
-                    txtFilter.ID = "txtFilter_" + data.Key;
+                    txtFilter.ID = "txtFilter_" + data.Item1;
 
                     ddlFilter.Visible = false;
                 }
 
-                lblFilter.ID = "lblFilter_" + data.Key;
-                lblFilter.Text = data.Value;
+                lblFilter.ID = "lblFilter_" + data.Item1;
+                lblFilter.Text = data.Item2;
 
                 if (UseDetailedSearch)
                 {
-                    if (!String.IsNullOrEmpty(data.Key))
+                    if (!String.IsNullOrEmpty(data.Item1))
                     {
                         string sr;
-                        tdfilter.Text = (SearchTerms.TryGetValue(data.Key, out sr) ? sr : null);
+                        tdfilter.Text = (SearchTerms.TryGetValue(data.Item1, out sr) ? sr : null);
                     }
                 }
                 else if (SearchTerms.Count == 1)
@@ -254,50 +273,16 @@ namespace Wokhan.WebControls
                     txtFilter.Attributes.Add("onkeyup", "ExtendedGridView.autoFilter(this.value, '" + txtFilter.UniqueID + "');");
                 }
             }
+
         }
 
         private void uplInfos_PreRender(object sender, EventArgs e)
         {
             ScriptManager.RegisterStartupScript(uplInfos, typeof(ExtendedGridView), gridEv.ClientID + "_load", "var " + gridEv.ClientID + "_scrollingTable = null; var " + gridEv.ClientID + "_scrollingTableFooter = null; ExtendedGridView.scrollHeaderAndFooter('" + gridEv.ClientID + "');", true);
         }
-
         #endregion Events
 
         #region Properties
-
-        private string _internalId
-        {
-            get
-            {
-                return Page.Request.Url.GetHashCode() + "_" + this.UniqueID.GetHashCode();
-                /*var ret = (string)ViewState["InternalGuid"];
-                if (ret == null)
-                {
-                    ret = Guid.NewGuid().ToString();
-                    ViewState["InternalGuid"] = ret;
-                }
-                return ret;*/
-            }
-        }
-
-        private object localSource
-        {
-            get { return _localSource ?? (EnablePageSessionData ? Page.Session["ExtendedGridViewData_" + _internalId] : (EnableViewStateData ? ViewState["Data"] : null)); }
-            set { _localSource = value; }
-        }
-
-        private List<KeyValuePair<string, string>> PostBackOptionsCache
-        {
-            get { return (List<KeyValuePair<string, string>>)ViewState["PostBackOptions"]; }
-            set { ViewState["PostBackOptions"] = value; }
-        }
-
-        private string[] realGroupColumns
-        {
-            get { return ((string[])ViewState["realGroupColumns"] ?? GroupColumns); }
-            set { ViewState["realGroupColumns"] = value; }
-        }
-
         #region Innergrid properties
 
         public bool AllowCustomPaging
@@ -356,8 +341,83 @@ namespace Wokhan.WebControls
             get { EnsureChildControls(); return gridEv.FooterStyle; }
         }
 
-        #endregion Innergrid properties
+        public int PageIndex
+        {
+            get { return gridEv.PageIndex; }
+            set { gridEv.PageIndex = value; }
+        }
 
+        public int PageSize
+        {
+            get { return gridEv.PageSize; }
+            set { EnsureChildControls(); gridEv.PageSize = value; }
+        }
+
+        public string RowHeaderColumn
+        {
+            get { return gridEv.RowHeaderColumn; }
+            set { EnsureChildControls(); gridEv.RowHeaderColumn = value; }
+        }
+
+        [PersistenceMode(PersistenceMode.InnerProperty)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
+        [NotifyParentProperty(true)]
+        public TableItemStyle RowStyle
+        {
+            get { EnsureChildControls(); return gridEv.RowStyle; }
+        }
+
+        public bool ShowFooter
+        {
+            get { return gridEv.ShowFooter; }
+            set { EnsureChildControls(); gridEv.ShowFooter = value; }
+        }
+
+        public int VirtualItemCount
+        {
+            get { return gridEv.VirtualItemCount; }
+            set { gridEv.VirtualItemCount = value; }
+        }
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
+        public TableItemStyle HeaderStyle
+        {
+            get { EnsureChildControls(); return gridEv.HeaderStyle; }
+        }
+
+        #endregion Innergrid properties
+        private string _internalId
+        {
+            get
+            {
+                return Page.Request.Url.GetHashCode() + "_" + this.UniqueID.GetHashCode();
+                /*var ret = (string)ViewState["InternalGuid"];
+                if (ret == null)
+                {
+                    ret = Guid.NewGuid().ToString();
+                    ViewState["InternalGuid"] = ret;
+                }
+                return ret;*/
+            }
+        }
+
+        private object localSource
+        {
+            get { return _localSource ?? (EnablePageSessionData ? Page.Session["ExtendedGridViewData_" + _internalId] : (EnableViewStateData ? ViewState["Data"] : null)); }
+            set { _localSource = value; }
+        }
+
+        private List<KeyValuePair<string, string>> PostBackOptionsCache
+        {
+            get { return (List<KeyValuePair<string, string>>)ViewState["PostBackOptions"]; }
+            set { ViewState["PostBackOptions"] = value; }
+        }
+
+        private string[] realGroupColumns
+        {
+            get { return ((string[])ViewState["realGroupColumns"] ?? GroupColumns); }
+            set { ViewState["realGroupColumns"] = value; }
+        }
         public int ComputedOffsetBottom
         {
             get { return (int)(ViewState["ComputedOffsetBottom"] ?? 0); }
@@ -443,7 +503,7 @@ namespace Wokhan.WebControls
 
         public Dictionary<string, string> GridHeaders
         {
-            get { return gridEv.HeaderRow.Cells.Cast<DataControlFieldCell>().ToDictionary(c => c.GetUnderlyingField(), c => ((BoundField)c.ContainingField).HeaderText); }
+            get { return gridEv.HeaderRow.Cells.OfType<DataControlFieldCell>().ToDictionary(c => c.GetUnderlyingField(), c => ((BoundField)c.ContainingField).HeaderText); }
         }
 
         public Color[] GroupColors
@@ -482,18 +542,18 @@ namespace Wokhan.WebControls
         }
 
         [TypeConverter(typeof(StringArrayConverter))]
+        public string[] ShowAsDetailColumns
+        {
+            get { return (string[])ViewState["ShowAsDetailColumns"]; }
+            set { ViewState["ShowAsDetailColumns"] = value; }
+        }
+
+        [TypeConverter(typeof(StringArrayConverter))]
         public string[] Headers
         {
             get { return (string[])ViewState["Headers"]; }
             set { ViewState["Headers"] = value; }
         }
-
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
-        public TableItemStyle HeaderStyle
-        {
-            get { EnsureChildControls(); return gridEv.HeaderStyle; }
-        }
-
         public bool HideCellWhenGroup
         {
             get { return (bool)(ViewState["HideCellWhenGroup"] ?? true); }
@@ -530,33 +590,6 @@ namespace Wokhan.WebControls
             get { return (CssStyleCollection)ViewState["LastUpdateStyle"]; }
             set { ViewState["LastUpdateStyle"] = value; }
         }
-
-        public int PageIndex
-        {
-            get { return gridEv.PageIndex; }
-            set { gridEv.PageIndex = value; }
-        }
-
-        public int PageSize
-        {
-            get { return gridEv.PageSize; }
-            set { EnsureChildControls(); gridEv.PageSize = value; }
-        }
-
-        public string RowHeaderColumn
-        {
-            get { return gridEv.RowHeaderColumn; }
-            set { EnsureChildControls(); gridEv.RowHeaderColumn = value; }
-        }
-
-        [PersistenceMode(PersistenceMode.InnerProperty)]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
-        [NotifyParentProperty(true)]
-        public TableItemStyle RowStyle
-        {
-            get { EnsureChildControls(); return gridEv.RowStyle; }
-        }
-
         [TypeConverter(typeof(StringArrayConverter))]
         public string[] SearchColumns { get; set; }
 
@@ -593,13 +626,6 @@ namespace Wokhan.WebControls
             get { return (bool)(ViewState["ShowFilter"] ?? true); }
             set { ViewState["ShowFilter"] = value; }
         }
-
-        public bool ShowFooter
-        {
-            get { return gridEv.ShowFooter; }
-            set { EnsureChildControls(); gridEv.ShowFooter = value; }
-        }
-
         public bool ShowItemsCount
         {
             get { return (bool)(ViewState["ShowItemsCount"] ?? true); }
@@ -664,16 +690,43 @@ namespace Wokhan.WebControls
             get { return (bool)(ViewState["UseDetailedSearch"] ?? false); }
             set { ViewState["UseDetailedSearch"] = value; }
         }
-
-        public int VirtualItemCount
-        {
-            get { return gridEv.VirtualItemCount; }
-            set { gridEv.VirtualItemCount = value; }
-        }
-
         #endregion Properties
 
         #region Methods
+
+        public void UpdateSortColumns(GridViewSortEventArgs e)
+        {
+            gridEv.PageIndex = 0;
+
+            if (SortColumns == null)
+            {
+                SortColumns = new Dictionary<string, SortDirection>();
+            }
+
+            if (SortColumns.Count > 0 && hidCtrlDown.Value != "true")
+            {
+                SortColumns = SortColumns.Where(s => s.Key == e.SortExpression || (realGroupColumns != null && realGroupColumns.Contains(s.Key))).ToDictionary(s => s.Key, s => s.Value);
+            }
+
+            if (SortColumns.ContainsKey(e.SortExpression))
+            {
+                if (SortColumns[e.SortExpression] == SortDirection.Descending && (realGroupColumns == null || !realGroupColumns.Contains(e.SortExpression)))
+                {
+                    SortColumns.Remove(e.SortExpression);
+                }
+                else
+                {
+                    SortColumns[e.SortExpression] = (SortColumns[e.SortExpression] == SortDirection.Ascending ? SortDirection.Descending : SortDirection.Ascending);
+                }
+            }
+            else
+            {
+                SortColumns.Add(e.SortExpression, e.SortDirection);
+            }
+
+            // To avoir the ctrl key being not detected as released after partial postbacks.
+            hidCtrlDown.Value = "false";
+        }
 
         private void ApplySort()
         {
@@ -703,6 +756,9 @@ namespace Wokhan.WebControls
 
         private void GenerateColumns()
         {
+            List<Tuple<string, string, string>> boundCols = null;
+
+            // Handle arrays (or the datagrid would only show a list of object[])
             if (localSource is IEnumerable && ((IEnumerable)localSource).IsArrayEnumerable())
             {
                 if (Headers == null)
@@ -715,50 +771,72 @@ namespace Wokhan.WebControls
                     localSource = ((IEnumerable)localSource).Cast<object[]>();
                 }
 
-                gridEv.AutoGenerateColumns = false;
-                for (int i = 0; i < Headers.Length; i++)
-                {
-                    gridEv.Columns.Add(new BoundField() { DataField = "!", HeaderText = Headers[i], SortExpression = i.ToString(), HtmlEncode = false });
-                }
-
                 if (GroupColumns != null)
                 {
-                    realGroupColumns = GroupColumns.Select(g => Headers.IndexOf(g)).Where(i => i != -1).Select(i => i.ToString()).ToArray();
+                    realGroupColumns = GroupColumns.Select(g => Headers.IndexOf(g))
+                        // Skip GroupColumns not matching an actual header
+                                                   .Where(i => i != -1)
+                                                   .Select(i => i.ToString())
+                                                   .ToArray();
                 }
+
+                boundCols = Headers.Select((h, i) => Tuple.Create("!", h, i.ToString())).ToList();
 
                 //localSource = ((IEnumerable)localSource).Cast<object[]>().ToArray();
-
                 //gridEv.RowDataBound += new GridViewRowEventHandler(gridEv_RowDataBoundForArray);
             }
+            // Overrides the columns if headers are already specified (or deducted for arrays above)
             else if (Headers != null)
             {
-                gridEv.AutoGenerateColumns = false;
-                for (int i = 0; i < Headers.Length; i++)
-                {
-                    string header = Headers[i];
-                    gridEv.Columns.Add(new BoundField() { DataField = header, HeaderText = header, SortExpression = header, HtmlEncode = false });
-                }
-
+                boundCols = Headers.Select(h => Tuple.Create(h, h, h)).ToList();
                 if (GroupColumns != null)
                 {
                     realGroupColumns = GroupColumns.Intersect(Headers).ToArray();
                 }
             }
+
+            // BoundCols won't be null for arrays or specified headers, so use it
+            if (boundCols != null)
+            {
+                gridEv.AutoGenerateColumns = false;
+                for (int i = 0; i < boundCols.Count; i++)
+                {
+                    var header = boundCols[i];
+                    gridEv.Columns.Add(new BoundField() { DataField = header.Item1, HeaderText = header.Item2, SortExpression = header.Item3, HtmlEncode = false });
+                }
+            }
+            // Or simply let the underlying datagrid figure out the actual columns
             else
             {
                 realGroupColumns = GroupColumns;
             }
         }
 
+        /// <summary>
+        /// Generates the filter on top of the grid
+        /// </summary>
+        /// <param name="headerRow"></param>
         private void GenerateFilter(GridViewRow headerRow)
         {
-            var realHeads = headerRow.Cells.Cast<DataControlFieldCell>()
-                                           .ToDictionary(c => c.GetUnderlyingField(), c => c.HasControls() ? ((LinkButton)c.Controls[0]).Text : c.Text);
+            var ix = 0;
+            var hcols = HeaderColumnsGroups != null ? HeaderColumnsGroups.ToDictionary(x =>
+            {
+                var ret = ix;
+                ix += x.Value;
+                return ret;
+            }, x => x.Key) : null;
+
+            var realHeads = GridHeaders.Select((c, i) => Tuple.Create(
+                                            c.Key,
+                                            c.Value,
+                                            (hcols != null ? hcols.LastOrDefault(h => i >= h.Key).Value : null)
+                                            )).GroupBy(x => x.Item3);
 
             if (UseDetailedSearch)
             {
                 pnlFilterOn.Visible = false;
-                rptDetailedSearch.DataSource = SearchColumns != null ? SearchColumns.ToDictionary(sc => sc, sc => realHeads[sc]) : realHeads;
+                // TODO: change that please... Add headers to rptDetailedSearch and replace to use realHeads.
+                rptDetailedSearch.DataSource = SearchColumns != null ? SearchColumns.Select(sc => Tuple.Create(sc, GridHeaders[sc], (string)null)).GroupBy(sc => (string)null) : realHeads;
             }
             else
             {
@@ -767,33 +845,25 @@ namespace Wokhan.WebControls
                 ddlFilterOn.Items.Clear();
                 ddlFilterOn.Items.Add(new ListItem("< Any >", ""));
 
-                var ix = 0;
-                var hcols = HeaderColumnsGroups != null ? HeaderColumnsGroups.ToDictionary(x =>
-                {
-                    var ret = ix;
-                    ix += x.Value;
-                    return ret;
-                }
-                    , x => x.Key) : null;
-
                 ExtendedDropDownList.ListItemGroup gx = null;
-                var i = 0;
-                foreach (var realHead in realHeads)
+                foreach (var group in realHeads)
                 {
-                    if (hcols != null && hcols.ContainsKey(i))
+                    if (group != null)
                     {
-                        gx = ddlFilterOn.Items.AddGroup(hcols[i]);
+                        gx = ddlFilterOn.Items.AddGroup(group.Key);
                     }
 
-                    if (gx != null)
+                    foreach (var realHead in group)
                     {
-                        gx.Items.Add(new ListItem(realHead.Value, realHead.Key));
+                        if (gx != null)
+                        {
+                            gx.Items.Add(new ListItem(realHead.Item3, realHead.Item2));
+                        }
+                        else
+                        {
+                            ddlFilterOn.Items.Add(new ListItem(realHead.Item3, realHead.Item2));
+                        }
                     }
-                    else
-                    {
-                        ddlFilterOn.Items.Add(new ListItem(realHead.Value, realHead.Key));
-                    }
-                    i++;
                 }
 
                 if (SearchTerms.Keys.Count == 1)
@@ -811,16 +881,12 @@ namespace Wokhan.WebControls
 
             rptDetailedSearch.ItemDataBound += rptDetailedSearch_ItemDataBound;
             rptDetailedSearch.DataBind();
-
-            /*ddlFilterOn.DataSource = new[] { new KeyValuePair<string, string>("", "< Any >") }
-                .Concat(gridEv.HeaderRow.Cells.Cast<DataControlFieldCell>()
-                .Select((c, i) => new KeyValuePair<string, string>(c.ContainingField.SortExpression, (HeaderColumnsGroups != null ? HeaderColumnsGroups.FirstOrDefault(h => h.Value >= i).Key : "") + (c.HasControls() ? ((LinkButton)c.Controls[0]).Text : c.Text))));
-            ddlFilterOn.DataTextField = "value";
-            ddlFilterOn.DataValueField = "key";
-
-            ddlFilterOn.DataBind();*/
         }
 
+        /// <summary>
+        /// Generates / overrides the table footer row
+        /// </summary>
+        /// <param name="footerRow"></param>
         private void GenerateFooterRow(GridViewRow footerRow)
         {
             int nbcells = 1;
@@ -899,88 +965,97 @@ namespace Wokhan.WebControls
                 gridEv.Controls[0].Controls.AddAt(0, headerGroupsRow);
             }
 
+            PostBackOptionsCache = new List<KeyValuePair<string, string>>();
+
+            DataControlFieldCell c;
+            string field;
+            string sortExpr;
+            int groupCnt = 0;
+            DataTable srcAsTable = null;
             if (localSource is DataTable || localSource is DataView)
             {
-                DataTable dtSrc = (localSource is DataTable ? (DataTable)localSource : ((DataView)localSource).Table);
-                foreach (DataControlFieldCell headerCell in headerRow.Cells)
-                {
-                    var refColumn = dtSrc.Columns[headerCell.ContainingField.HeaderText];
-                    if (refColumn != null && !String.IsNullOrEmpty(refColumn.Caption))
-                    {
-                        if (headerCell.HasControls())
-                        {
-                            ((LinkButton)headerCell.Controls[0]).Text = refColumn.Caption;
-                        }
-                        else
-                        {
-                            headerCell.Text = refColumn.Caption;
-                        }
-                    }
-                }
+                srcAsTable = (localSource is DataTable ? (DataTable)localSource : ((DataView)localSource).Table);
             }
 
-            if (AllowSorting && SortColumns != null)
+            string headertxt;
+            for (int i = headerRow.Cells.Count - 1; i > 0; i--)
             {
-                int sortCpt = 1;
-                /*var srcCol = SortColumns.AsEnumerable();
-                if (HideCellWhenGroup && GroupColumns != null)
+                headertxt = null;
+                c = (DataControlFieldCell)headerRow.Cells[i];
+                field = c.GetUnderlyingField();
+                sortExpr = (String.IsNullOrEmpty(c.ContainingField.SortExpression) ? c.GetUnderlyingField() : c.ContainingField.SortExpression);
+
+                // Sorted column management
+                if (AllowSorting && SortColumns != null && SortColumns.ContainsKey(sortExpr))
                 {
-                    srcCol = srcCol.Where(s => !GroupColumns.Contains(s.Key));
-                }*/
-                foreach (KeyValuePair<string, SortDirection> colSort in SortColumns)
-                {
-                    var cell = headerRow.Cells.OfType<DataControlFieldCell>().First(c => (String.IsNullOrEmpty(c.ContainingField.SortExpression) ? c.GetUnderlyingField() : c.ContainingField.SortExpression) == colSort.Key);
+                    int sortCpt = 1;
                     if (SortColumns.Count > 1)
                     {
-                        cell.Controls.Add(new Label() { Text = sortCpt.ToString(), CssClass = "ExtendedGridViewSortCounter" });
+                        c.Controls.Add(new Label() { Text = sortCpt.ToString(), CssClass = "ExtendedGridViewSortCounter" });
                         sortCpt++;
                     }
-                    cell.ApplyStyle(colSort.Value == SortDirection.Ascending ? SortedAscendingHeaderStyle : SortedDescendingHeaderStyle);
+                    c.ApplyStyle(SortColumns[sortExpr] == SortDirection.Ascending ? SortedAscendingHeaderStyle : SortedDescendingHeaderStyle);
                 }
-            }
 
-            PostBackOptionsCache = new List<KeyValuePair<string, string>>();
-            foreach (TableCell c in headerRow.Cells)
-            {
+                // Overriding header txt for datatables (which are bound automatically)
+                if (srcAsTable != null)
+                {
+                    headertxt = srcAsTable.Columns[field].Caption ?? headertxt;
+                }
+
+                // Grouped columns management
+                if (GroupColumns != null && GroupColumns.Contains(field))
+                {
+                    if (HideCellWhenGroup)
+                    {
+                        headertxt = String.Empty;
+                    }
+
+                    c.CssClass += " ExtendedGridViewHeaderCellGroup";
+                    c.BackColor = GroupColors[groupCnt % GroupColors.Length];//) + " !important";
+                    groupCnt++;
+                }
+                // Detailed fields management (basically only clearing them)
+                // TODO: try to simply remove the cell
+                else if (ShowAsDetailColumns != null && ShowAsDetailColumns.Contains(field))
+                {
+                    headerRow.Cells.RemoveAt(i);
+                    continue;
+                    /*c.Controls.Clear();
+                    headertxt = String.Empty;
+                    // Might be unnecessary
+                    c.Attributes.Remove("onclick");*/
+                }
+
+                // Overriding the onclick event (when available) and the inner text
                 if (c.HasControls())
                 {
                     LinkButton lnk = (LinkButton)c.Controls[0];
                     PostBackOptionsCache.Add(new KeyValuePair<string, string>(gridEv.UniqueID, lnk.CommandName + "$" + lnk.CommandArgument));
                     lnk.OnClientClick = "return false;";
                     c.Attributes["onclick"] = Page.ClientScript.GetPostBackEventReference(gridEv, lnk.CommandName + "$" + lnk.CommandArgument) + "; return false;";
+
+                    if (headertxt != null)
+                    {
+                        lnk.Text = headertxt;
+                    }
+                }
+                else if (headertxt != null)
+                {
+                    c.Text = headertxt;
                 }
             }
 
-            if (GroupColumns != null)
+            if (ShowAsDetailColumns != null && ShowAsDetailColumns.Any())
             {
-                groupableColsIndexes = headerRow.Cells.Cast<DataControlFieldCell>()
-                                      .Select((c, i) => new { Index = i, Cell = c })
-                                      .Join(GroupColumns, c => c.Cell.GetUnderlyingField(), gc => gc, (c, gc) => c.Index)
-                                      .ToList();
-
-                for (int groupCnt = 0; groupCnt < groupableColsIndexes.Count; groupCnt++)
-                {
-                    var i = groupableColsIndexes[groupCnt];
-                    var headerCell = headerRow.Cells[i];
-
-                    if (HideCellWhenGroup)
-                    {
-                        if (headerCell.HasControls())
-                        {
-                            ((LinkButton)headerCell.Controls[0]).Text = String.Empty;
-                        }
-                        else
-                        {
-                            headerCell.Text = String.Empty;
-                        }
-                    }
-
-                    headerCell.CssClass += " ExtendedGridViewHeaderCellGroup";
-                    headerCell.BackColor = GroupColors[groupCnt % GroupColors.Length];//) + " !important";
-                }
+                headerRow.Cells.AddAt(0, new TableHeaderCell());
             }
         }
 
+        /// <summary>
+        /// Generates the paging row (at the bottom, as we don't yet allow pager on the top).
+        /// </summary>
+        /// <param name="pagerRow"></param>
         private void GeneratePager(GridViewRow pagerRow)
         {
             Table pagerTable = (Table)pagerRow.Controls[0].Controls[0];
@@ -997,10 +1072,13 @@ namespace Wokhan.WebControls
         {
             prevMin++;
 
+            List<Tuple<string, string>> detailsValues = new List<Tuple<string, string>>();
             DataControlFieldCell cell;
             string field;
             string value = null;
             Action<GridViewRow, TableCell> formatter;
+            int groupCnt = 0;
+            List<int> toBeDeleted = new List<int>();
             for (int i = 0; i < row.Cells.Count; i++)
             {
                 cell = (DataControlFieldCell)row.Cells[i];
@@ -1008,9 +1086,7 @@ namespace Wokhan.WebControls
 
                 // Highlight the searched terms (if any)
                 // Should optimize to avoid checking everytime
-
                 if ((SearchTerms.Count == 1 && SearchTerms.First().Key == "") || SearchTerms.TryGetValue(field, out value))
-                //if (SearchTerms.ContainsKey(field) || (SearchTerms.Count == 1 && SearchTerms.First().Key == ""))
                 {
                     value = value ?? SearchTerms.First().Value;
                     cell.Text = Regex.Replace(cell.Text, Regex.Escape(value), (m) => "<span class='ExtendedGridViewHighlightedText'>" + m.Groups[0].Value + "</span>", RegexOptions.IgnoreCase);
@@ -1020,22 +1096,15 @@ namespace Wokhan.WebControls
                 {
                     formatter(row, cell);
                 }
-            }
 
-            // Grouping
-            if (GroupColumns != null && GroupColumns.Any())
-            {
-                Color groupColor;
-                for (int groupCnt = 0; groupCnt < groupableColsIndexes.Count; groupCnt++)
+                if (GroupColumns != null && GroupColumns.Contains(field))
                 {
-                    var i = groupableColsIndexes[groupCnt];
-                    groupColor = GroupColors[groupCnt % GroupColors.Length];
+                    var groupColor = GroupColors[groupCnt % GroupColors.Length];
 
-                    cell = (DataControlFieldCell)row.Cells[i];
                     // New group => create a new grouping row
                     if (cell.Text != groupVal || boundaries.Contains(prevMin))
                     {
-                        //Todo: remove
+                        //TODO: remove
                         boundaries.Add(prevMin);
 
                         groupVal = cell.Text;
@@ -1050,6 +1119,8 @@ namespace Wokhan.WebControls
                             gvr.Style["display"] = "none";
                             gvr.Attributes["data-exgroup"] = gridEv.Rows[prevMin].Attributes["data-exgroup"];
                         }
+
+                        // TODO: Why not using a colspan? Check that
                         for (int colindex = 0; colindex < i; colindex++)
                         {
                             var cc = new TableCell();
@@ -1061,7 +1132,11 @@ namespace Wokhan.WebControls
                             gvr.Cells.Add(cc);
                         }
 
-                        var groupedCell = new TableHeaderCell() { ColumnSpan = gridEv.HeaderRow.Cells.Cast<TableCell>().Where(c => c.Visible).Count() - i, BackColor = groupColor };
+                        var groupedCell = new TableHeaderCell()
+                        {
+                            ColumnSpan = gridEv.HeaderRow.Cells.Cast<TableCell>().Where(c => c.Visible).Count() - i,
+                            BackColor = groupColor
+                        };
                         groupedCell.MergeStyle(GroupHeaderCellStyle);
                         groupedCell.Attributes["onclick"] = "ExtendedGridView.toggleGroupedRows('" + groupId + "');";
                         gvr.Cells.Add(groupedCell);
@@ -1069,7 +1144,7 @@ namespace Wokhan.WebControls
                         var divgroup = (HtmlContainerControl)new HtmlGenericControl("div");
                         groupedCell.Controls.Add(divgroup);
 
-                        var grouptitle = new HtmlGenericControl("span") { InnerHtml = ((DataControlFieldCell)gridEv.HeaderRow.Cells[i]).ContainingField.HeaderText + ": " };
+                        var grouptitle = new HtmlGenericControl("span") { InnerHtml = ((BoundField)cell.ContainingField).HeaderText + ": " };
                         grouptitle.Attributes["class"] = "ExtendedGridViewGroupTitle";
                         divgroup.Controls.Add(grouptitle);
 
@@ -1090,12 +1165,86 @@ namespace Wokhan.WebControls
                     if (HideGroupedColumnDef)
                     {
                         row.Style["display"] = "none";
-                        row.Attributes["data-exgroup"] = groupId;
                     }
+
+                    row.Attributes["data-exgroup"] = groupId;
 
                     cell.BackColor = groupColor;
                     cell.MergeStyle(GroupedCellStyle);
                 }
+                else if (ShowAsDetailColumns != null && ShowAsDetailColumns.Contains(field))
+                {
+                    detailsValues.Add(Tuple.Create(((BoundField)cell.ContainingField).HeaderText, cell.Text));
+                    //row.Cells.Remove(cell);
+                    //cell.Text = String.Empty;
+                    toBeDeleted.Add(i);
+                }
+            }
+
+            //TODO: could be better, don't you think?
+            foreach (var i in toBeDeleted)
+            {
+                row.Cells.RemoveAt(i);
+            }
+
+            // Handling detail rows/columns
+            if (ShowAsDetailColumns != null)
+            {
+                var imgDetails = new HtmlImage();
+                imgDetails.Src = Page.ClientScript.GetWebResourceUrl(typeof(ExtendedGridView), "Wokhan.WebControls.Images.toggle_plus.gif");
+                imgDetails.Attributes["class"] = "ExtendedGridViewToggleButton";
+                imgDetails.Style["cursor"] = "pointer";
+                imgDetails.Attributes.Add("onclick", "ExtendedGridView.toggleDetailsVisibility(this, '" + row.ClientID + "')");
+                
+                var cellDetail = new TableCell();
+                cellDetail.Controls.Add(imgDetails);
+                
+                row.Cells.AddAt(0, cellDetail);
+
+                GenerateDetailRows(row, detailsValues);
+            }
+        }
+
+        private void GenerateDetailRows(GridViewRow gridRow, List<Tuple<string, string>> values)
+        {
+            GridViewRow newrow = new GridViewRow(gridRow.RowIndex, gridRow.RowIndex, DataControlRowType.DataRow, DataControlRowState.Normal)
+            {
+                ID = gridRow.ID + "_DETAILS",
+                CssClass = ""
+            };
+            newrow.Style.Add(HtmlTextWriterStyle.Display, "none");
+
+            ((Table)gridEv.Controls[0]).Rows.Add(newrow);
+            newrow.Cells.Clear();
+
+            TableCell newcell = new TableCell() { ColumnSpan = gridRow.Cells.Count };
+            newrow.Cells.Add(newcell);
+
+            HtmlContainerControl newdiv = new HtmlGenericControl("div") { ID = gridRow.ID + "_DETAILS_DIV" };
+            newcell.Controls.Add(newdiv);
+
+            Table newtable = new Table()
+            {
+                CssClass = "ExtendedGridViewDetailsTable",
+                CellPadding = 0,
+                CellSpacing = 0,
+                Width = Unit.Percentage(100),
+                Height = Unit.Percentage(100)
+            };
+            newtable.Style.Add("table-layout", "fixed");
+            newdiv.Controls.Add(newtable);
+
+            bool isOdd = false;
+            for (int i = 0; i < values.Count; i++)
+            {
+                TableRow newCplRow = new TableRow();
+                newCplRow.CssClass = isOdd ? "ExtendedGridViewDetailsRowOdd" : "ExtendedGridViewDetailsRowEven";
+                newtable.Rows.Add(newCplRow);
+
+                newCplRow.Cells.Add(new TableHeaderCell() { Text = values[i].Item1 });
+                newCplRow.Cells.Add(new TableCell() { Text = values[i].Item2 });
+
+                isOdd = !isOdd;
             }
         }
 
@@ -1154,39 +1303,6 @@ namespace Wokhan.WebControls
 
         #endregion Embedded ASCX management & constructor
 
-        #region Properties
-        /*public bool CausedPostback
-        {
-            get
-            {
-                var sc = ScriptManager.GetCurrent(Page);
-                return !sc.IsInAsyncPostBack ||
-                       sc.AsyncPostBackSourceElementID == gridEv.UniqueID ||
-                       sc.AsyncPostBackSourceElementID == timeInfos.UniqueID ||
-                       sc.AsyncPostBackSourceElementID == chkTimer.UniqueID ||
-                       sc.AsyncPostBackSourceElementID.StartsWith(rptDetailedSearch.UniqueID) ||
-                       sc.AsyncPostBackSourceElementID == ddlFilterOn.UniqueID ||
-                       sc.AsyncPostBackSourceElementID == btnSearch.UniqueID ||
-                       sc.AsyncPostBackSourceElementID == btnClear.UniqueID;
-            }
-        }*/
-        /*       public string[] values
-               {
-                   get
-                   {
-                       return Page.Request.Form.AllKeys.Where(k => k.StartsWith(rptDetailedSearch.UniqueID) && !String.IsNullOrEmpty(Page.Request.Form[k]))
-                                                        .Select(f => Page.Request.Form[f]).ToArray();
-                   }
-               }
-       */
-        /*public bool MoveGroupedColumnsToFront
-        {
-            get { return (bool)(ViewState["MoveGroupedColumnsToFront"] ?? false); }
-            set { ViewState["MoveGroupedColumnsToFront"] = value; }
-        }*/
-
-        #endregion Properties
-        
         #region Rendering methods
         protected override void OnPreRender(EventArgs e)
         {
@@ -1275,155 +1391,5 @@ namespace Wokhan.WebControls
             }
         }
         #endregion Rendering methods
-
-        public void UpdateSortColumns(GridViewSortEventArgs e)
-        {
-            gridEv.PageIndex = 0;
-
-            if (SortColumns == null)
-            {
-                SortColumns = new Dictionary<string, SortDirection>();
-            }
-
-            if (SortColumns.Count > 0 && hidCtrlDown.Value != "true")
-            {
-                SortColumns = SortColumns.Where(s => s.Key == e.SortExpression || (realGroupColumns != null && realGroupColumns.Contains(s.Key))).ToDictionary(s => s.Key, s => s.Value);
-            }
-
-            if (SortColumns.ContainsKey(e.SortExpression))
-            {
-                if (SortColumns[e.SortExpression] == SortDirection.Descending && (realGroupColumns == null || !realGroupColumns.Contains(e.SortExpression)))
-                {
-                    SortColumns.Remove(e.SortExpression);
-                }
-                else
-                {
-                    SortColumns[e.SortExpression] = (SortColumns[e.SortExpression] == SortDirection.Ascending ? SortDirection.Descending : SortDirection.Ascending);
-                }
-            }
-            else
-            {
-                SortColumns.Add(e.SortExpression, e.SortDirection);
-            }
-
-            // To avoir the ctrl key being not detected as released after partial postbacks.
-            hidCtrlDown.Value = "false";
-        }
-        
-        #region Legacy group rows
-
-        /*private void GroupRows()
-        {
-            if (GroupColumns != null)
-            {
-                GridViewRow lastgroup = null;
-
-                var groupableColsIndexes = gridEv.HeaderRow.Cells.Cast<DataControlFieldCell>()
-                                                                 .Select((c, i) => new { Index = i, Cell = c })
-                                                                 .Join(GroupColumns, c => c.Cell.GetUnderlyingField(), gc => gc, (c, gc) => c.Index)
-                                                                 .ToList();
-
-                List<int> boundaries = new List<int>();
-                Color groupColor;
-                for (int groupCnt = 0; groupCnt < groupableColsIndexes.Count; groupCnt++)
-                {
-                    var i = groupableColsIndexes[groupCnt];
-                    groupColor = GroupColors[groupCnt % GroupColors.Length];
-
-                    if (HideCellWhenGroup)
-                    {
-                        var headerCell = gridEv.HeaderRow.Cells[i];
-                        if (headerCell.HasControls())
-                        {
-                            ((LinkButton)headerCell.Controls[0]).Text = String.Empty;
-                        }
-                        else
-                        {
-                            headerCell.Text = String.Empty;
-                        }
-
-                        headerCell.CssClass += " ExtendedGridViewHeaderCellGroup";
-                        headerCell.BackColor = groupColor;//) + " !important";
-                    }
-
-                    int prevMin = -1;
-                    string groupVal = null;
-                    GridViewRow r;
-                    TableCell cell;
-                    string groupId = null;
-                    while (++prevMin < gridEv.Rows.Count)
-                    {
-                        r = gridEv.Rows[prevMin];
-                        cell = r.Cells[i];
-                        // New group => create a new grouping row
-                        if (cell.Text != groupVal || boundaries.Contains(prevMin))
-                        {
-                            //Todo: remove
-                            boundaries.Add(prevMin);
-
-                            groupVal = cell.Text;
-                            groupId = Guid.NewGuid().ToString();
-
-                            var gvr = new GridViewRow(-1, -1, DataControlRowType.DataRow, DataControlRowState.Normal);
-                            gvr.ClientIDMode = ClientIDMode.Static;
-                            gvr.ID = groupId;
-                            gvr.Attributes["data-exgrouphead"] = "true";
-                            if (groupCnt > 1 && HideGroupedColumnDef)
-                            {
-                                gvr.Style["display"] = "none";
-                                gvr.Attributes["data-exgroup"] = gridEv.Rows[prevMin].Attributes["data-exgroup"];
-                            }
-                            for (int colindex = 0; colindex < i; colindex++)
-                            {
-                                var cc = new TableCell();
-                                if (lastgroup != null && lastgroup.Cells.Count > colindex)
-                                {
-                                    cc.BackColor = lastgroup.Cells[colindex].BackColor;
-                                    cc.MergeStyle(GroupedCellStyle);
-                                }
-                                gvr.Cells.Add(cc);
-                            }
-
-                            var groupedCell = new TableHeaderCell() { ColumnSpan = gridEv.HeaderRow.Cells.Cast<TableCell>().Where(c => c.Visible).Count() - i, BackColor = groupColor };
-                            groupedCell.MergeStyle(GroupHeaderCellStyle);
-                            groupedCell.Attributes["onclick"] = "ExtendedGridView.toggleGroupedRows('" + groupId + "');";
-                            gvr.Cells.Add(groupedCell);
-
-                            var divgroup = (HtmlContainerControl)new HtmlGenericControl("div");
-                            groupedCell.Controls.Add(divgroup);
-
-                            var grouptitle = new HtmlGenericControl("span") { InnerHtml = ((DataControlFieldCell)gridEv.HeaderRow.Cells[i]).ContainingField.HeaderText + ": " };
-                            grouptitle.Attributes["class"] = "ExtendedGridViewGroupTitle";
-                            divgroup.Controls.Add(grouptitle);
-
-                            var groupvalue = new HtmlGenericControl("span") { InnerHtml = cell.Text };
-                            groupvalue.Attributes["class"] = "ExtendedGridViewGroupValue";
-                            divgroup.Controls.Add(groupvalue);
-
-                            gridEv.Rows[prevMin].Parent.Controls.AddAt(prevMin + (HeaderColumnsGroups != null && HeaderColumnsGroups.Any() ? 1 : 0) + boundaries.Count(b => b <= prevMin), gvr);//prevMin + 1 + offset, gvr);
-
-                            lastgroup = gvr;
-                        }
-
-                        if (HideCellWhenGroup)
-                        {
-                            cell.Text = String.Empty;// "g" + boundaries.Count;
-                        }
-
-                        if (HideGroupedColumnDef)
-                        {
-                            r.Style["display"] = "none";
-                            r.Attributes["data-exgroup"] = groupId;
-                        }
-
-                        cell.BackColor = groupColor;
-                        cell.MergeStyle(GroupedCellStyle);
-                    }
-                }
-            }
-        }*/
-
-        #endregion Legacy group rows
-        
     }
 }

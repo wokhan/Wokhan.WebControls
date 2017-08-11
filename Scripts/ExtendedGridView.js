@@ -17,11 +17,13 @@
     toggleGroupedRows: function (gvr, hideonly) {
         var row = document.getElementById(gvr);
         var allgrouped = row.parentNode.querySelectorAll("[data-exgroup='" + gvr + "']")
-        
+
         for (var i = 0; i < allgrouped.length; i++) {
             var next = allgrouped[i];
             if (next.style.display != "none") {
                 if (next.getAttribute("data-exgrouphead") !== null) { this.toggleGroupedRows(next.id, true); }
+                var det = document.getElementById(next.id + "_DETAILS");
+                if (det) { det.style.display = "none"; }
                 next.style.display = "none";
             } else if (!hideonly) {
                 next.style.display = "";
@@ -47,6 +49,19 @@
         table.parentNode.appendChild(scrollingTable);
 
         return scrollingTable;
+    },
+
+    toggleDetailsVisibility: function (img, rowid) {
+        var row = document.getElementById(rowid + "_DETAILS");
+        var div = document.getElementById(rowid + "_DETAILS_DIV");
+
+        if (row && row.style.display == "none") {
+            img.src = '<%= WebResource("Wokhan.WebControls.Images.toggle_minus.gif")%>';
+            row.style.display = "";
+        } else {
+            img.src = '<%= WebResource("Wokhan.WebControls.Images.toggle_plus.gif")%>';
+            row.style.display = "none";
+        }
     },
 
     scrollHeaderAndFooter: function (gridId, forceres) {

@@ -35,10 +35,11 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>Wokhan.WebControls.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -73,9 +74,6 @@
     <EmbeddedResource Include="Images\sortedDESC.png" />
     <EmbeddedResource Include="Images\sortnone.png" />
     <EmbeddedResource Include="Styles\ExtendedGridView.css" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Wokhan.WebControls.snk" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="ExtendedDropDownList.ascx">
